@@ -1,0 +1,120 @@
+""" From "COMPUTATIONAL PHYSICS", 3rd Ed, Enlarged Python eTextBook
+    by RH Landau, MJ Paez, and CC Bordeianu
+    Copyright Wiley-VCH Verlag GmbH & Co. KGaA, Berlin;  Copyright R Landau,
+    Oregon State Unv, MJ Paez, Univ Antioquia, C Bordeianu, Univ Bucharest, 2015.
+    Support by National Science Foundation"""
+
+# ABM.py:   Adams BM method to integrate ODE
+# Solves y' = (t - y)/2,    with y[0] = 1 over [0, 3]
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+class Adams_integrator():
+    """ 
+    A python class to perform ABM method to integrate ODE 
+    """
+    
+    def __init__(self, n_step, start, stop, independent_var, dependent_var, function_collector):
+        self.n_steps = n_steps
+        self.start = start
+        self.stop = stop
+        self.independent_var = independent_var
+        self.dependent_var = dependent_var
+        self.function_collector  = function_collector
+    
+
+    def adams_function(self):
+        """
+        Returns function of an initial value problem
+        """
+        return (self.independent_var - self.dependent_var) / 2
+
+
+    def runge_kutta(self, h_step):
+        """ 
+        Returns dependent variable from runge kutta method of order 4 
+        """
+    
+        for i in range(3):
+            t = h_step * i
+            k0 = h_step * adams_function(t, self.dependent_var[i])
+            k1 = h_step * adams_function(t + h_step / 2, self.dependent_var[i] + k0 / 2)
+            k2 = h_step * adams_function(t + h_step / 2, self.dependent_var[i] + k1 / 2)
+            k3 = h_step * adams_function(t + h_step, self.dependent_var[i] + k2)
+            self.dependent_var[i+1].update(self.dependent_var[i] + (1 / 6) * (k0 + 2 * k1 + 2 * k2 + k3))
+        return self.dependent_var
+
+
+    def fill_values_on_variables(self):
+        """    
+        Compute 3 additional starting values using runge_kutta
+        """
+
+        self.h_step = (self.stop - self.start) / self.n_steps  # step/size of interval
+        self.h_step2 = self.h_step / self.n_steps
+    
+        self.independent_var[0] = self.start
+        self.dependent_var[0] = 1
+    
+        for k in range(1, 4):
+            self.independent_var[k] = self.start + k * self.h_step
+            self.dependent_var[k] = runge_kutta(self.dependent_var, self.h_step)[3]
+
+        for i in range(4):
+            self.function_collector[i] = adams_function(self.independent_var[i], self.dependent_var[i])
+
+            
+    def adams_bashforth_predictor(self):
+        self.fill_values_on_variables()
+        for k in range(3, self.n_steps):  # Predictor
+            p = self.dependent_var[k] + self.h_step2 * (-9 * self.function_collector[0] 
+            + 37 * self.function_collector[1] - 59 * self.function_collector[2] 
+            + 55 * self.function_collector[3])
+            
+            self.independent_var[k + 1] = self.start + self.h_step * (k + 1)  # Next abscissa
+            self.function_collector[4] = adams_function(self.independent_var[k + 1], p)
+            
+            self.dependent_var[k + 1] = self.dependent_var[k] + self.h_step2 * (self.function_collector[1] 
+            - 5 * self.function_collector[2] + 19 * self.function_collector[3]
+            + 9 * self.function_collector[4])  # Corrector
+            
+            for i in range(3):
+                self.function_collector[i] = self.function_collector[i + 1]
+            self.function_collector[3] = adams_function(self.independent_var[k + 1], self.dependent_var[k + 1])
+        return self.independent_var, self.dependent_var
+
+
+def get_local_variables():
+    """
+    All required variables/arrays are provided from this function
+    """
+    
+    n_steps = 24
+    start = 0
+    stop = 3
+    independent_var = np.zeros(n_steps+1)
+    dependent_var = np.copy(independent_var)
+    function_collector = np.zeros(5)
+    return n_steps, start, stop, independent_var, dependent_var, function_collector
+    
+
+def get_final_result():
+    """
+    Generate and plot final results
+    """
+
+    n_steps, start, stop, independent_var, dependent_var, function_collector = get_local_variables()
+    ind_var, dep_var = Adams_integrator(n_steps, start, stop, independent_var, dependent_var, function_collector).adams_bashforth_predictor()
+    ysol = np.array([3 * np.exp(-tv / 2) - 2 + tv for tv in ind_var])
+    print("{:>3} {:>4} {:>15} {:>10}".format("k", "t", "Y numerical", "Y exact"))
+    for k in range(n_steps + 1):
+        print("{: 3d},{: 5.3f},{: 12.11f},{: 12.11f}".format(k, ind_var[k], dep_var[k], ysol[k]))
+        plt.plot(ind_var[: n_steps + 1], dep_var[: n_steps + 1], "o")
+        plt.plot(ind_var[: n_steps + 1], ysol[: n_steps + 1])
+    plt.show()
+    
+    
+if __name__ == "__main__" :
+    get_final_result()
