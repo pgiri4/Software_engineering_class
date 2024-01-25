@@ -2,7 +2,8 @@
     by RH Landau, MJ Paez, and CC Bordeianu
     Copyright Wiley-VCH Verlag GmbH & Co. KGaA, Berlin;  Copyright R Landau,
     Oregon State Unv, MJ Paez, Univ Antioquia, C Bordeianu, Univ Bucharest, 2015.
-    Support by National Science Foundation"""
+    Support by National Science Foundation
+"""
 
 # ABM.py:   Adams BM method to integrate ODE
 # Solves y' = (t - y)/2,    with y[0] = 1 over [0, 3]
@@ -11,11 +12,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class Adams_integrator():
     """ 
     A python class to perform ABM method to integrate ODE 
     """
     
+
     def __init__(self, n_step, start, stop, independent_var, dependent_var, function_collector):
         self.n_steps = n_steps
         self.start = start
@@ -29,6 +32,7 @@ class Adams_integrator():
         """
         Returns function of an initial value problem
         """
+
         return (self.independent_var - self.dependent_var) / 2
 
 
