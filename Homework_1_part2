@@ -1,0 +1,153 @@
+import numpy as np
+
+MAX_IN = 11  # Max number of intervals
+VMIN = 0.0
+VMAX = 1.0  # Integration ranges
+EULERS_CONSTANT = 2.718281828459045  # Euler's constant
+
+
+def gauss_function(x_variable):
+    """
+    The integrand function.
+
+    Parameters:
+    - x_variable (float): The variable for the integrand.
+
+    Returns:
+    - float: The value of the integrand at x_variable.
+    """
+    return np.exp(-x_variable)
+
+
+def integration_0(xi, first, second, added_value, difference):
+    """
+    Auxiliary function for job = 0.
+
+    Parameters:
+    - xi (float): Variable value.
+    - first (float): First integration limit.
+    - second (float): Second integration limit.
+    - added_value (float): Sum of the two limits.
+    - difference (float): Difference between the two limits.
+
+    Returns:
+    - float: Result of the integration for job = 0.
+    """
+    return first * second * (1.0 + xi) / (added_value - difference * xi)
+
+
+def integration_1(xi, first, second, added_value, difference):
+    """
+    Auxiliary function for job = 1.
+
+    Parameters:
+    - xi (float): Variable value.
+    - first (float): First integration limit.
+    - second (float): Second integration limit.
+    - added_value (float): Sum of the two limits.
+    - difference (float): Difference between the two limits.
+
+    Returns:
+    - float: Result of the integration for job = 1.
+    """
+    return (2.0 * first * second * second
+            / ((added_value - difference * xi) * (added_value - difference * xi)))
+
+
+def integration_2(xi, first, second, added_value):
+    """
+    Auxiliary function for job = 2.
+
+    Parameters:
+    - xi (float): Variable value.
+    - first (float): First integration limit.
+    - second (float): Second integration limit.
+    - added_value (float): Sum of the two limits.
+
+    Returns:
+    - float: Result of the integration for job = 2.
+    """
+    return 2.0 * (first + second) / ((1.0 - xi) * (1.0 - xi))
+
+
+def gauss(num_points, job, first, second):
+    """
+    Gauss quadrature function.
+
+    Parameters:
+    - num_points (int): Number of integration points.
+    - job (int): Job parameter (0, 1, or 2).
+    - first (float): First integration limit.
+    - second (float): Second integration limit.
+
+    Returns:
+    - tuple: Tuple containing x_variable and width arrays.
+    """
+    epsilon = 3.0e-14
+    x_variable = np.zeros(num_points)
+    width = np.zeros(num_points)
+
+    m = (num_points + 1) // 2
+    difference = second - first
+    added_value = second + first
+
+    if job < 0 or job > 2:
+        raise ValueError("Invalid job value. Should be 0, 1, or 2.")
+
+    for i in range(1, m + 1):
+        t = np.cos(np.pi * (i - 0.25) / (num_points + 0.5))
+        t1 = 1
+        while abs(t - t1) >= epsilon:
+            p1 = 1.0
+            p2 = 0.0
+            for j in range(1, num_points + 1):
+                p3 = p2
+                p2 = p1
+                p1 = ((2.0 * j - 1) * t * p2 - (j - 1.0) * p3) / (j)
+            pp = num_points * (t * p1 - p2) / (t * t - 1.0)
+            t1 = t
+            t -= p1 / pp
+
+        x_variable[i - 1] = -t
+        x_variable[num_points - i] = t
+        width[i - 1] = 2.0 / ((1.0 - t * t) * pp * pp)
+        width[num_points - i] = width[i - 1]
+
+    for i in range(0, num_points):
+        xi = x_variable[i]
+        if job == 0:
+            x_variable[i] *= difference / 2.0
+            x_variable[i] += added_value / 2.0
+            width[i] *= difference / 2.0
+        elif job == 1:
+            x_variable[i] = integration_0(xi, first, second, added_value, difference)
+            width[i] = integration_1(xi, first, second, added_value, difference)
+        elif job == 2:
+            x_variable[i] = integration_2(xi, first, second, added_value)
+
+    return x_variable, width
+
+
+def gaussint(no, min, max):
+    """
+    Performs Gauss quadrature integration.
+
+    Parameters:
+    - no (int): Number of integration points.
+    - min (float): Lower integration limit.
+    - max (float): Upper integration limit.
+
+    Returns:
+    - float: Result of the integration.
+    """
+    quadra = 0.0
+    x_variable, width = gauss(no, 0, min, max)  # Returns pts & wts
+    for n in range(0, no):
+        quadra += gauss_function(x_variable[n]) * width[n]  # Calculate integral
+    return quadra
+
+
+if __name__ == "__main__":
+    for i in range(3, MAX_IN + 1, 2):
+        result = gaussint(i, VMIN, VMAX)
+        print(" i ", i, " err ", abs(result - 1 + 1 / EULERS_CONSTANT))
